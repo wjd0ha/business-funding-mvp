@@ -1,51 +1,44 @@
-export type ValueChainStep = {
+export type Pillar = {
   id: string;
-  step: string;
+  badge: string;
   title: string;
   summary: string;
-  description: string;
+  points: string[];
 };
 
-export const valueChainSteps: ValueChainStep[] = [
+export const pillars: Pillar[] = [
   {
-    id: "design",
-    step: "STEP 1",
-    title: "3D 시뮬레이션 설계",
-    summary: "부지 정보와 원하는 스타일을 입력하면 3D 모델로 먼저 확인합니다.",
-    description:
-      "현재 부지 사진과 원하는 수영장의 크기, 형태, 설비 옵션을 입력하면 3D 모델링을 통해 완공 후 모습을 미리 시뮬레이션합니다.",
+    id: "simulate",
+    badge: "PILLAR 1",
+    title: "3D 시뮬레이션",
+    summary: "짓기 전에 내 마당에 들어올 수영장을 3D로 먼저 봅니다.",
+    points: [
+      "부지 사진 + 원하는 크기/스타일 입력",
+      "완공 후 모습을 3D 모델로 미리 확인",
+      "설비·옵션을 바꿔보며 비교",
+    ],
   },
   {
-    id: "quote",
-    step: "STEP 2",
-    title: "자동 견적 비교",
-    summary: "3D 설계 데이터를 기준으로 여러 시공업체의 예상 견적을 비교합니다.",
-    description:
-      "동일한 설계 데이터를 기준으로 산출된 견적이기 때문에 업체별 가격 차이가 어디서 발생하는지 더 쉽게 확인할 수 있습니다.",
+    id: "compare",
+    badge: "PILLAR 2",
+    title: "투명 견적 비교",
+    summary: "같은 설계 기준으로 여러 업체의 견적을 한 화면에서 비교합니다.",
+    points: [
+      "동일 3D 설계 데이터 기준 견적 산출",
+      "최소~최대 견적 범위 공개",
+      "업체별 포트폴리오·후기 함께 확인",
+    ],
   },
   {
-    id: "match",
-    step: "STEP 3",
-    title: "시공업체 매칭",
-    summary: "포트폴리오와 시공 실적을 공개한 업체들의 경쟁 입찰로 연결합니다.",
-    description:
-      "시공 실적, 포트폴리오, 고객 후기를 확인한 뒤 최소~최대 견적 범위 안에서 원하는 업체를 직접 선택할 수 있습니다.",
-  },
-  {
-    id: "manage",
-    step: "STEP 4",
-    title: "계약 & 시공 관리",
-    summary: "단계별 결제와 실시간 진행 공유로 시공 과정을 투명하게 확인합니다.",
-    description:
-      "계약 이후에는 공정 단계에 맞춘 결제 일정과 진행 상황을 함께 확인하며 시공을 진행할 수 있습니다.",
-  },
-  {
-    id: "maintain",
-    step: "STEP 5",
-    title: "유지보수 & 부품 스토어",
-    summary: "필터, 히트펌프, 모래여과재 등 필요한 부품을 정기적으로 구매할 수 있습니다.",
-    description:
-      "시공 이후에도 소모품과 부품을 필요할 때마다, 또는 정기적으로 구매하며 수영장을 꾸준히 관리할 수 있습니다.",
+    id: "subscribe",
+    badge: "PILLAR 3",
+    title: "구독형 유지보수",
+    summary: "완공 이후에도 정수기 렌탈처럼 부품·관리를 이어갑니다.",
+    points: [
+      "필터, 모래여과재 등 소모품 정기 배송",
+      "히트펌프·펌프 점검 일정 관리",
+      "필요할 때 단건 구매도 가능",
+    ],
   },
 ];
 
@@ -73,13 +66,37 @@ export const painPoints: PainPoint[] = [
   },
 ];
 
-export type ProcessStep = {
+export type SubscriptionHighlight = {
+  title: string;
+  description: string;
+};
+
+export const subscriptionHighlights: SubscriptionHighlight[] = [
+  {
+    title: "정기 소모품 배송",
+    description: "필터·모래여과재 같은 소모품을 교체 주기에 맞춰 정기적으로 받아볼 수 있습니다.",
+  },
+  {
+    title: "점검 일정 관리",
+    description: "히트펌프, 순환펌프 등 주요 설비의 점검 시점을 미리 안내받습니다.",
+  },
+  {
+    title: "필요할 때 단건 구매",
+    description: "구독이 부담스럽다면 필요한 시점에 부품만 단건으로 구매할 수도 있습니다.",
+  },
+  {
+    title: "관리 이력 한곳에서 확인",
+    description: "교체·점검 이력을 누적해 다음 시공·관리 계획에 참고할 수 있습니다.",
+  },
+];
+
+export type JourneyStep = {
   step: string;
   title: string;
   description: string;
 };
 
-export const processSteps: ProcessStep[] = [
+export const journeySteps: JourneyStep[] = [
   {
     step: "01",
     title: "정보 입력",
@@ -97,8 +114,8 @@ export const processSteps: ProcessStep[] = [
   },
   {
     step: "04",
-    title: "시공 & 사후관리",
-    description: "계약부터 준공, 이후 유지보수 부품 구매까지 풀픽 안에서 이어집니다.",
+    title: "시공 & 구독 관리",
+    description: "계약부터 준공, 이후 구독형 유지보수까지 풀픽 안에서 이어집니다.",
   },
 ];
 
@@ -145,10 +162,10 @@ export const pricingPlans: PricingPlan[] = [
     highlighted: true,
   },
   {
-    name: "시공 매칭 & 관리",
-    price: "계약 성사 시 수수료",
-    description: "검증된 시공업체와의 계약, 진행 관리, 사후 유지보수까지 연결합니다.",
-    features: ["시공업체 매칭", "단계별 결제·진행 관리", "유지보수·부품 스토어 연계"],
+    name: "구독형 유지보수",
+    price: "월 구독 또는 단건 구매",
+    description: "시공 완료 후 필터·부품 정기 배송과 점검 일정 관리를 이용합니다.",
+    features: ["소모품 정기 배송", "설비 점검 일정 안내", "단건 구매도 가능"],
   },
 ];
 
@@ -174,9 +191,9 @@ export const faqItems: FaqItem[] = [
       "아니요. 견적 비교와 3D 시뮬레이션 확인까지는 의무가 아니며, 마음에 드는 업체가 있을 때만 계약을 진행하면 됩니다.",
   },
   {
-    question: "시공 후 유지보수 부품은 어디서 구매하나요?",
+    question: "구독형 유지보수는 꼭 가입해야 하나요?",
     answer:
-      "풀픽의 유지보수·부품 스토어에서 필터, 히트펌프, 모래여과재 등을 필요할 때마다 구매할 수 있습니다.",
+      "아니요. 구독은 선택입니다. 필요할 때마다 필터, 히트펌프 부품 등을 단건으로 구매하실 수도 있습니다.",
   },
   {
     question: "어떤 지역, 어떤 형태의 수영장에 이용할 수 있나요?",
@@ -210,8 +227,21 @@ export const comparisonRows: ComparisonRow[] = [
   {
     label: "사후관리",
     before: "완공 후 별도로 부품·관리 업체를 찾아야 함",
-    after: "유지보수·부품 구매까지 한 곳에서 연결",
+    after: "구독형 정기 배송 또는 단건 구매로 연결",
   },
+];
+
+export type PoolTypeOption = {
+  value: string;
+  label: string;
+  description: string;
+};
+
+export const poolTypeOptions: PoolTypeOption[] = [
+  { value: "outdoor", label: "야외 수영장", description: "마당, 정원 등 외부 공간" },
+  { value: "indoor", label: "실내 수영장", description: "실내·전천후 공간" },
+  { value: "glamping", label: "글램핑·캠핑장", description: "운영 시설용 수영장" },
+  { value: "etc", label: "기타", description: "리모델링, 기타 형태" },
 ];
 
 export type LandingHighlight = {
@@ -229,7 +259,7 @@ export const landingHighlights: LandingHighlight[] = [
     description: "동일한 설계 기준으로 산출된 견적을 비교해 합리적인 선택을 돕습니다.",
   },
   {
-    title: "계약부터 유지보수까지 한 곳에서",
-    description: "시공 계약, 진행 관리, 이후 부품 구매까지 풀픽 안에서 이어집니다.",
+    title: "시공 후엔 구독형 관리로 연결",
+    description: "계약·시공 이후 필터·부품 정기 배송까지 풀픽 안에서 이어집니다.",
   },
 ];
