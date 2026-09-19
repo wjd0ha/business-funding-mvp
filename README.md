@@ -25,7 +25,7 @@ npm run dev
 3. 별도 프리뷰 프로젝트의 Vercel Authentication을 활성화하고, 비로그인 요청이 Vercel 로그인으로 이동하는지 확인한다. 공유 링크는 만들지 않는다. 이 프리뷰에만 `RADAR_PREVIEW_SSO=1`을 Preview 환경변수로 설정하면 CRM 추가 비밀번호가 필요 없다. 운영 환경과 보호되지 않은 배포에는 절대 이 값을 설정하지 않는다. 그 외 환경에서 CRM을 사용할 때만 `RADAR_ADMIN_PASSWORD`(16자 이상)와 `RADAR_ADMIN_SECRET`(32자 이상)을 설정한다. `CRON_SECRET`은 별도로 유지한다.
 4. `bizinfo-crawler`의 프리뷰 브랜치가 기존 `GOOGLE_CREDENTIALS` secret을 재사용해 새 시트에 수집. 기본 브랜치에는 프리뷰 전용 예약 파일 하나만 추가해 매일 08:00 KST 무렵 프리뷰 브랜치를 실행함. 2026-09-19 수동 검증 작업은 성공했고 CRM에서 공고 45건을 확인함. 기존 운영용 날짜별 시트·주간 수집 코드는 변경하지 않음.
 5. 진단→리드→저장→CRM→수신 해지→알림 dry-run을 검증.
-6. 발신 도메인 인증과 테스트 메일을 마친 뒤 `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `APP_URL`을 설정하고 `RADAR_EMAIL_ENABLED=1`로 변경. 프리뷰 배포에서는 Vercel Cron이 실행되지 않으므로 알림 예약은 별도 배포·스케줄 검증 후 활성화.
+6. `bizfit_official@naver.com`의 2단계 인증·POP3/SMTP 사용·애플리케이션 비밀번호를 준비한 뒤 Preview Secret `NAVER_SMTP_APP_PASSWORD`와 접근 가능한 `APP_URL`을 설정한다. 관리자 전용 `POST /api/admin/email-check`로 발송 없이 SMTP 인증을 확인하고, 본인 주소 테스트 메일까지 검증한 뒤에만 `RADAR_EMAIL_ENABLED=1`로 변경한다. 일반 네이버 로그인 비밀번호는 사용하지 않는다. SMTP는 전송 결과가 모호한 실패를 자동 재시도하지 않는다. 프리뷰 배포에서는 Vercel Cron이 실행되지 않으므로 알림 예약은 별도 배포·스케줄 검증 후 활성화.
 7. Vercel 별도 프로젝트 또는 격리 프리뷰 URL로 배포. 운영 도메인과 운영 프로젝트 환경변수는 변경하지 않음.
 
 Google Sheets는 초기 MVP에는 적합하지만 다중 사용자 동시 쓰기, 대량 공고, 정교한 쿼리에는 한계가 있습니다. API 할당량·서비스 계정 접근·개인정보 보존 정책을 운영 전에 검증해야 합니다.

@@ -3,9 +3,10 @@ import { appendRow, parseList, readRows, updateRow } from "@/lib/google-sheets";
 import { readRadarNotices } from "@/lib/notice-store";
 import { matchNotices } from "@/lib/matching";
 import type { Notice, RadarProfile } from "@/lib/radar-types";
-import { createHash } from "node:crypto";
+import { hasNaverEmailConfig, sendNaverEmail } from "@/lib/naver-email";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function escapeHtml(value: string) {
   return value.replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[char] || char);
@@ -36,9 +37,10 @@ export async function POST(request: NextRequest) {
     ]);
     const noticeById = new Map(notices.map((notice) => [notice.id, notice]));
     const notificationKey = (row: Record<string, string>) => `${row.lead_id}|${row.notice_id}|${row.kind}`;
-    const sentKeys = new Set(notifications.filter((row) => row.status === "sent").map(notificationKey));
+    // SMTP has no provider-side idempotency key. Ambiguous failures need manual review.
+    const sentKeys = new Set(notifications.filter((row) => ["sent", "sending", "failed"].includes(row.status)).map(notificationKey));
     const priorByKey = new Map(notifications.map((row, index) => [notificationKey(row), { row, index }]));
-    const enabled = process.env.RADAR_EMAIL_ENABLED === "1" && Boolean(process.env.RESEND_API_KEY && process.env.ALERT_FROM_EMAIL && safeUrl(process.env.APP_URL));
+    const enabled = process.env.RADAR_EMAIL_ENABLED === "1" && hasNaverEmailConfig() && Boolean(safeUrl(process.env.APP_URL));
     let queued = 0, sent = 0, failed = 0;
     for (const lead of leads.filter((row) => row.status === "active" && row.consent_service === "true").slice(0, 100)) {
       const profile: RadarProfile = {
@@ -68,26 +70,15 @@ export async function POST(request: NextRequest) {
         };
         if (previous) await updateRow("notifications", previous.index + 2, { ...record, status: "sending" });
         else await appendRow("notifications", record);
-        const idempotencyKey = createHash("sha256").update(key).digest("hex");
         let providerId = "", error = "";
         try {
-          const response = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
-              "Content-Type": "application/json", "Idempotency-Key": idempotencyKey,
-            },
-            body: JSON.stringify({
-              from: process.env.ALERT_FROM_EMAIL, to: [lead.email],
-              subject: kind === "new" ? "[비즈핏] 새로운 맞춤 사업기회" : `[비즈핏] 관심 공고 마감 D-${kind.split("-")[1]}`,
-              html: message(lead.name, notice, kind, safeUrl(process.env.APP_URL)!, lead.unsubscribe_token),
-            }),
+          providerId = await sendNaverEmail({
+            to: lead.email,
+            subject: kind === "new" ? "[비즈핏] 새로운 맞춤 사업기회" : `[비즈핏] 관심 공고 마감 D-${kind.split("-")[1]}`,
+            html: message(lead.name, notice, kind, safeUrl(process.env.APP_URL)!, lead.unsubscribe_token),
           });
-          const result = await response.json().catch(() => ({})) as { id?: string };
-          providerId = result.id || "";
-          if (!response.ok) error = `HTTP ${response.status}`;
         } catch {
-          error = "provider request failed";
+          error = "smtp request failed; review before retry";
         }
         const rowIndex = previous ? previous.index + 2 : (await readRows("notifications")).findIndex((row) => row.id === record.id) + 2;
         if (rowIndex >= 2) await updateRow("notifications", rowIndex, {
