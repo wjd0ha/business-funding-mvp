@@ -8,8 +8,9 @@ function businessYears(openDate: string | null) {
 }
 
 function daysUntil(date?: string | null) {
-  if (!date) return null;
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
   const end = new Date(`${date}T23:59:59+09:00`).getTime();
+  if (Number.isNaN(end)) return null;
   return Math.ceil((end - Date.now()) / 86_400_000);
 }
 

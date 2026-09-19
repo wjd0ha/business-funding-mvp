@@ -23,7 +23,7 @@ npm run dev
 1. 별도 생성한 비공개 `Bizfit Radar Preview DB` 시트의 ID를 `RADAR_SHEET_ID`에 설정.
 2. Google Cloud 서비스 계정 키를 `GOOGLE_SERVICE_ACCOUNT_JSON`에 설정하고, 그 서비스 계정 이메일에 시트 편집 권한만 부여.
 3. `RADAR_ADMIN_PASSWORD`, `RADAR_ADMIN_SECRET`, `CRON_SECRET`을 각각 다른 긴 난수로 설정.
-4. `bizinfo-crawler`의 같은 프리뷰 브랜치에만 `RADAR_PREVIEW_SHEET_ID` 변수와 `RADAR_PREVIEW_GOOGLE_CREDENTIALS` secret을 설정하고 1회 수동 수집. 기존 운영용 날짜별 시트는 사용하지 않음.
+4. `bizinfo-crawler`의 같은 프리뷰 브랜치가 기존 `GOOGLE_CREDENTIALS` secret을 재사용해 새 시트에 수집. 2026-09-19 수동 실행에서 45건 적재를 확인함. 기존 운영용 날짜별 시트는 사용하지 않음. GitHub 예약 실행은 기본 브랜치에만 적용되므로 프리뷰 브랜치 자동 수집은 별도 스케줄 연결이 필요함.
 5. 진단→리드→저장→CRM→수신 해지→알림 dry-run을 검증.
 6. 발신 도메인 인증과 테스트 메일을 마친 뒤 `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `APP_URL`을 설정하고 `RADAR_EMAIL_ENABLED=1`로 변경. 프리뷰 전용 스케줄만 연결.
 7. Vercel 별도 프로젝트 또는 격리 프리뷰 URL로 배포. 운영 도메인과 운영 프로젝트 환경변수는 변경하지 않음.
