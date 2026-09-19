@@ -24,7 +24,7 @@ npm run dev
 
 ## 배포 전 확인
 
-1. 격리된 Supabase 개발 DB에 기존 `alert_*`/관리자 기반 스키마를 복제하고 `supabase/migrations/*_opportunity_radar_v1.sql` 적용, RLS·매칭·해지 기능 검증. 현재 조직은 Free 플랜이며 활성 무료 프로젝트 2개를 사용 중이어서 Supabase 브랜치 생성이 거절된 상태입니다. 운영 DB에 직접 적용하지 않습니다.
+1. 격리된 Supabase 개발 DB에 `supabase/migrations/*_opportunity_radar_v1.sql` 적용, RLS·매칭·해지 기능 검증. 이 마이그레이션은 기존 `alert_*` 구조를 재사용하거나 빈 DB에 최소 테이블을 생성할 수 있도록 준비됐지만, 아직 DB 실행 검증은 하지 못했습니다. 현재 계정은 활성 무료 프로젝트 2개 한도를 사용 중입니다. 별도 Free 조직 `Bizfit Radar Preview`를 만들었으나 Supabase는 소유자 기준으로 한도를 적용해 그 안의 개발 프로젝트 생성도 막았습니다. 운영 DB에 직접 적용하지 않습니다.
 2. `bizinfo-crawler`의 같은 이름 브랜치에 개발 DB의 `RADAR_PREVIEW_SUPABASE_URL`, `RADAR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY`를 GitHub Actions secret으로 등록하고 수동 1회 수집. 기존 Google Sheets·Telegram secret도 프리뷰에서는 재사용하지 않습니다. 운영 크롤러의 기본 브랜치는 변경하지 않습니다.
 3. 개발 DB의 `start_finder_admins`에 실제 운영자 Auth 사용자 ID만 등록해 CRM 접근 확인.
 4. Resend 발신 도메인 인증 후 개발 브랜치 Edge Function에 `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `APP_URL` secret 설정. 발송키가 없으면 dry-run만 수행합니다.
