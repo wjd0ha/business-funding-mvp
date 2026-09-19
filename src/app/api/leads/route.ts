@@ -22,13 +22,13 @@ export async function POST(request: NextRequest) {
       open_date: body.openDate || "", industry: String(body.industry || "").slice(0, 80),
       employees_band: body.employeesBand || "", interests: body.interests || [],
       consent_privacy: true, consent_service: alertsLive && Boolean(body.consentService), consent_marketing: Boolean(body.consentMarketing),
-      consent_version: "2026-09-19.v1", utm: body.utm || {}, status: alertsLive ? "active" : "preview",
+      consent_version: alertsLive ? "2026-09-19.v1" : "2026-09-19.preview.v1", utm: body.utm || {}, status: alertsLive ? "active" : "preview",
       unsubscribe_token: crypto.randomUUID(),
     };
     await appendRow("leads", row);
     await appendRow("events", {
       id: crypto.randomUUID(), created_at: new Date().toISOString(), session_id: body.sessionId,
-      lead_id: id, type: "alert_signup", meta: { source: "opportunity-radar" },
+      lead_id: id, type: alertsLive ? "alert_signup" : "preview_interest", meta: { source: "opportunity-radar" },
     }).catch(() => {});
     return NextResponse.json({ leadId: id });
   } catch {
