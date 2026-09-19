@@ -7,7 +7,7 @@
 - 6단계 진단, 공고 매칭, 저장, 리드 신청, 관리자 CRM, 2027 준비지도
 - 비공개 Google Sheet의 `notices`, `leads`, `saved`, `events`, `notifications` 탭을 저장소로 사용
 - 서버만 Google 서비스 계정으로 시트에 접근. 브라우저에는 시트 ID·비밀키·리드 목록을 전달하지 않음
-- `POST /api/cron/alerts`는 `CRON_SECRET` 인증 후 신규 공고와 저장 공고 D-7/D-3을 확인. 기본은 발송하지 않는 dry-run
+- `POST /api/cron/alerts`는 `CRON_SECRET` 인증 후 신규 공고와 저장 공고 D-7/D-3을 확인. 기본 dry-run은 후보 건수만 세고 시트에 발송 기록을 남기거나 메일을 보내지 않음
 
 ## 로컬 실행
 

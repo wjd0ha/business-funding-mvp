@@ -3,6 +3,7 @@ import { appendRow, parseList, readRows, updateRow } from "@/lib/google-sheets";
 import { readRadarNotices } from "@/lib/notice-store";
 import { matchNotices } from "@/lib/matching";
 import type { Notice, RadarProfile } from "@/lib/radar-types";
+import { createHash } from "node:crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,9 @@ export async function POST(request: NextRequest) {
       readRows("leads"), readRows("saved"), readRows("notifications"), readRadarNotices(),
     ]);
     const noticeById = new Map(notices.map((notice) => [notice.id, notice]));
-    const sentKeys = new Set(notifications.map((row) => `${row.lead_id}|${row.notice_id}|${row.kind}`));
+    const notificationKey = (row: Record<string, string>) => `${row.lead_id}|${row.notice_id}|${row.kind}`;
+    const sentKeys = new Set(notifications.filter((row) => row.status === "sent").map(notificationKey));
+    const priorByKey = new Map(notifications.map((row, index) => [notificationKey(row), { row, index }]));
     const enabled = process.env.RADAR_EMAIL_ENABLED === "1" && Boolean(process.env.RESEND_API_KEY && process.env.ALERT_FROM_EMAIL && safeUrl(process.env.APP_URL));
     let queued = 0, sent = 0, failed = 0;
     for (const lead of leads.filter((row) => row.status === "active" && row.consent_service === "true").slice(0, 100)) {
@@ -54,31 +57,45 @@ export async function POST(request: NextRequest) {
         const key = `${lead.id}|${notice.id}|${kind}`;
         if (sentKeys.has(key)) continue;
         sentKeys.add(key);
-        const id = crypto.randomUUID();
-        await appendRow("notifications", {
-          id, created_at: new Date().toISOString(), lead_id: lead.id, notice_id: notice.id,
-          kind, scheduled_at: new Date().toISOString(), status: "draft",
-        });
         queued++;
+        // A dry run must not reserve the notification key or write to the sheet.
         if (!enabled) continue;
-        const response = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            from: process.env.ALERT_FROM_EMAIL, to: [lead.email],
-            subject: kind === "new" ? "[비즈핏] 새로운 맞춤 사업기회" : `[비즈핏] 관심 공고 마감 D-${kind.split("-")[1]}`,
-            html: message(lead.name, notice, kind, safeUrl(process.env.APP_URL)!, lead.unsubscribe_token),
-          }),
+        const previous = priorByKey.get(key);
+        const record = previous?.row || {
+          id: crypto.randomUUID(), created_at: new Date().toISOString(),
+          lead_id: lead.id, notice_id: notice.id, kind,
+          scheduled_at: new Date().toISOString(), status: "sending",
+        };
+        if (previous) await updateRow("notifications", previous.index + 2, { ...record, status: "sending" });
+        else await appendRow("notifications", record);
+        const idempotencyKey = createHash("sha256").update(key).digest("hex");
+        let providerId = "", error = "";
+        try {
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+              "Content-Type": "application/json", "Idempotency-Key": idempotencyKey,
+            },
+            body: JSON.stringify({
+              from: process.env.ALERT_FROM_EMAIL, to: [lead.email],
+              subject: kind === "new" ? "[비즈핏] 새로운 맞춤 사업기회" : `[비즈핏] 관심 공고 마감 D-${kind.split("-")[1]}`,
+              html: message(lead.name, notice, kind, safeUrl(process.env.APP_URL)!, lead.unsubscribe_token),
+            }),
+          });
+          const result = await response.json().catch(() => ({})) as { id?: string };
+          providerId = result.id || "";
+          if (!response.ok) error = `HTTP ${response.status}`;
+        } catch {
+          error = "provider request failed";
+        }
+        const rowIndex = previous ? previous.index + 2 : (await readRows("notifications")).findIndex((row) => row.id === record.id) + 2;
+        if (rowIndex >= 2) await updateRow("notifications", rowIndex, {
+          ...record, status: error ? "failed" : "sent",
+          sent_at: error ? "" : new Date().toISOString(),
+          provider_id: providerId, error,
         });
-        const result = await response.json().catch(() => ({})) as { id?: string };
-        const all = await readRows("notifications");
-        const index = all.findIndex((row) => row.id === id);
-        if (index >= 0) await updateRow("notifications", index + 2, {
-          ...all[index], status: response.ok ? "sent" : "failed",
-          sent_at: response.ok ? new Date().toISOString() : "",
-          provider_id: result.id || "", error: response.ok ? "" : `HTTP ${response.status}`,
-        });
-        if (response.ok) sent++; else failed++;
+        if (error) failed++; else sent++;
       }
     }
     return NextResponse.json({ queued, sent, failed, mode: enabled ? "send" : "dry-run" });
