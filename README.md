@@ -1,36 +1,33 @@
-# Bizfit 사업기회 레이더 (프리뷰 브랜치)
+# Bizfit 사업기회 레이더 (격리 프리뷰)
 
-운영 사이트와 별개의 `feature/opportunity-radar` 브랜치입니다. 기존 `business-funding-mvp`의 Next.js 화면을 재사용하고, `bizfit-start-finder`의 `alert_*` 테이블과 기업마당 크롤러를 연결합니다.
+`feature/opportunity-radar` 브랜치 전용 구현입니다. 운영 사이트와 기존 DB는 변경하지 않습니다.
 
-## 기능
+## 구성
 
-- 6단계 사업정보 진단 → 지역·업종·업력·관심분야 규칙 매칭
-- 공고 원문 링크·저장·행동 이벤트
-- 이메일과 선택적 마케팅 동의를 분리한 리드 신청
-- Supabase Auth + `start_finder_admins` 권한 기반 CRM
-- 신규 고관련도·저장 공고 D-7/D-3·월요일 주간 요약 큐와 이메일 발송 함수
-- `/prep-map`에 2027 준비지도: 사용자 제공 통계, 계절별 준비, 반복사업 확인 시기, 정책 개편 상태 및 출처
+- 6단계 진단, 공고 매칭, 저장, 리드 신청, 관리자 CRM, 2027 준비지도
+- 비공개 Google Sheet의 `notices`, `leads`, `saved`, `events`, `notifications` 탭을 저장소로 사용
+- 서버만 Google 서비스 계정으로 시트에 접근. 브라우저에는 시트 ID·비밀키·리드 목록을 전달하지 않음
+- `POST /api/cron/alerts`는 `CRON_SECRET` 인증 후 신규 공고와 저장 공고 D-7/D-3을 확인. 기본은 발송하지 않는 dry-run
 
-## 개발 설정
-
-`.env.example`을 참고해 **운영 DB와 격리된 개발용 Supabase 프로젝트/브랜치** URL과 publishable key를 `.env.local`에 설정하세요. 서비스 역할 키는 브라우저나 Vercel 환경변수에 넣지 않습니다.
+## 로컬 실행
 
 ```sh
 npm ci
 npm run dev
 ```
 
-공식 수집 데이터가 없으면 예시 화면을 표시하고 알림 신청을 막습니다. 기존 22건의 `source=sample` 공고는 실공고로 취급하지 않습니다.
+`.env.example`을 참고해 개발 전용 환경변수를 설정합니다. 시트의 편집 권한은 서비스 계정 이메일에만 추가합니다. 자격증명이 없으면 공고는 예시 데이터로 표시하고 개인정보 수집은 막습니다.
 
-## 배포 전 확인
+## 프리뷰 연결 순서
 
-1. 격리된 Supabase 개발 DB에 `supabase/migrations/*_opportunity_radar_v1.sql` 적용, RLS·매칭·해지 기능 검증. 이 마이그레이션은 기존 `alert_*` 구조를 재사용하거나 빈 DB에 최소 테이블을 생성할 수 있도록 준비됐지만, 아직 DB 실행 검증은 하지 못했습니다. 현재 계정은 활성 무료 프로젝트 2개 한도를 사용 중입니다. 별도 Free 조직 `Bizfit Radar Preview`를 만들었으나 Supabase는 소유자 기준으로 한도를 적용해 그 안의 개발 프로젝트 생성도 막았습니다. 운영 DB에 직접 적용하지 않습니다.
-2. `bizinfo-crawler`의 같은 이름 브랜치에 개발 DB의 `RADAR_PREVIEW_SUPABASE_URL`, `RADAR_PREVIEW_SUPABASE_SERVICE_ROLE_KEY`를 GitHub Actions secret으로 등록하고 수동 1회 수집. 기존 Google Sheets·Telegram secret도 프리뷰에서는 재사용하지 않습니다. 운영 크롤러의 기본 브랜치는 변경하지 않습니다.
-3. 개발 DB의 `start_finder_admins`에 실제 운영자 Auth 사용자 ID만 등록해 CRM 접근 확인.
-4. Resend 발신 도메인 인증 후 개발 브랜치 Edge Function에 `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `APP_URL` secret 설정. 발송키가 없으면 dry-run만 수행합니다.
-5. Edge Function을 JWT 검증 켜고 배포한 뒤 개발 브랜치에서 스케줄 호출 설정. 운영 프로젝트로 merge하지 않습니다.
-6. Vercel **별도 Preview 배포**에 개발 DB의 publishable key만 연결하고, 진단→리드→저장→CRM→알림 검증.
+1. 별도 생성한 비공개 `Bizfit Radar Preview DB` 시트의 ID를 `RADAR_SHEET_ID`에 설정.
+2. Google Cloud 서비스 계정 키를 `GOOGLE_SERVICE_ACCOUNT_JSON`에 설정하고, 그 서비스 계정 이메일에 시트 편집 권한만 부여.
+3. `RADAR_ADMIN_PASSWORD`, `RADAR_ADMIN_SECRET`, `CRON_SECRET`을 각각 다른 긴 난수로 설정.
+4. `bizinfo-crawler`의 같은 프리뷰 브랜치에만 `RADAR_PREVIEW_SHEET_ID` 변수와 `RADAR_PREVIEW_GOOGLE_CREDENTIALS` secret을 설정하고 1회 수동 수집. 기존 운영용 날짜별 시트는 사용하지 않음.
+5. 진단→리드→저장→CRM→수신 해지→알림 dry-run을 검증.
+6. 발신 도메인 인증과 테스트 메일을 마친 뒤 `RESEND_API_KEY`, `ALERT_FROM_EMAIL`, `APP_URL`을 설정하고 `RADAR_EMAIL_ENABLED=1`로 변경. 프리뷰 전용 스케줄만 연결.
+7. Vercel 별도 프로젝트 또는 격리 프리뷰 URL로 배포. 운영 도메인과 운영 프로젝트 환경변수는 변경하지 않음.
 
-공고 조건은 제목·요약에서 추정될 수 있으므로 신청 자격은 기관 원문을 다시 확인해야 합니다.
+Google Sheets는 초기 MVP에는 적합하지만 다중 사용자 동시 쓰기, 대량 공고, 정교한 쿼리에는 한계가 있습니다. API 할당량·서비스 계정 접근·개인정보 보존 정책을 운영 전에 검증해야 합니다.
 
-2027 준비지도 통계는 사용자 제공 분석이며 원자료/집계 코드는 아직 검증되지 않았습니다. 2027 예산은 정부안 단계이므로 국회 심의·후속 모집 공고에 따라 변경될 수 있습니다.
+공고 조건은 제목·요약 기반 추정이므로 실제 신청 자격은 기관 원문으로 확인해야 합니다. 2027 준비지도 통계는 사용자 제공 분석으로 원자료 검증 전이며, 사업 통폐합과 예산·공고 시점은 계속 바뀔 수 있습니다.

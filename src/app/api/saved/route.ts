@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseRequest } from "@/lib/supabase-rest";
+import { appendRow, hasSheetsConfig, readRows } from "@/lib/google-sheets";
 
 export async function POST(request: NextRequest) {
+  if (!hasSheetsConfig()) return NextResponse.json({ error: "프리뷰 저장소가 아직 연결되지 않았습니다." }, { status: 503 });
   try {
     const { leadId, noticeId, sessionId } = await request.json();
-    if (!leadId || !noticeId) return NextResponse.json({ error: "알림 등록 후 저장할 수 있습니다." }, { status: 400 });
-    await supabaseRequest("rpc/alert_save_notice", {
-      method: "POST",
-      body: JSON.stringify({ p_lead_id: leadId, p_notice_id: noticeId, p_session_id: sessionId }),
-    });
-    await Promise.allSettled([
-      supabaseRequest("alert_events", {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ session_id: sessionId || null, lead_id: leadId, notice_id: noticeId, type: "notice_save" }),
-      }),
-    ]);
+    if (![leadId, noticeId, sessionId].every((value) => typeof value === "string" && value.length < 150)) {
+      return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
+    }
+    const [leads, notices, saved] = await Promise.all([readRows("leads"), readRows("notices"), readRows("saved")]);
+    if (!leads.some((row) => row.id === leadId && row.session_id === sessionId && row.status === "active") ||
+        !notices.some((row) => row.id === noticeId)) {
+      return NextResponse.json({ error: "등록 정보 또는 공고를 확인해주세요." }, { status: 403 });
+    }
+    if (!saved.some((row) => row.lead_id === leadId && row.notice_id === noticeId)) {
+      await appendRow("saved", { id: crypto.randomUUID(), created_at: new Date().toISOString(), lead_id: leadId, notice_id: noticeId, session_id: sessionId });
+    }
     return NextResponse.json({ ok: true });
-  } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "저장 실패" }, { status: 500 });
+  } catch {
+    return NextResponse.json({ error: "저장 실패" }, { status: 500 });
   }
 }

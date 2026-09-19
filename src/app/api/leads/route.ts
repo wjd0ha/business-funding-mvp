@@ -1,57 +1,36 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { LeadPayload } from "@/lib/radar-types";
-import { supabaseRequest } from "@/lib/supabase-rest";
-
-function cleanPhone(value?: string) {
-  return value ? value.replace(/\D/g, "") : null;
-}
+import { appendRow, hasSheetsConfig } from "@/lib/google-sheets";
 
 export async function POST(request: NextRequest) {
+  if (!hasSheetsConfig()) return NextResponse.json({ error: "프리뷰 저장소가 아직 연결되지 않았습니다." }, { status: 503 });
   try {
-    const body = (await request.json()) as LeadPayload;
-    if (!body.email || !body.consentPrivacy || !body.consentService) {
+    const body = (await request.json()) as LeadPayload & { website?: string };
+    if (body.website) return NextResponse.json({ ok: true });
+    if (!body.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) || !body.consentPrivacy || !body.consentService ||
+        !/^[a-f0-9-]{36}$/i.test(body.sessionId || "") || !["pre","biz","re"].includes(body.businessStatus)) {
       return NextResponse.json({ error: "필수 입력과 동의를 확인해주세요." }, { status: 400 });
     }
-
+    const id = crypto.randomUUID();
     const row = {
-      id: crypto.randomUUID(),
-      session_id: body.sessionId,
-      name: body.name?.trim() || null,
-      email: body.email.trim().toLowerCase(),
-      phone: cleanPhone(body.phone),
-      business_status: body.businessStatus,
-      region: body.region,
-      open_date: body.openDate || null,
-      industry: body.industry,
-      employees_band: body.employeesBand || null,
-      interests: body.interests,
-      consent_privacy: true,
-      consent_service: true,
-      consent_marketing: Boolean(body.consentMarketing),
-      consent_version: "2026-09-19.v1",
-      utm: body.utm ?? {},
+      id, created_at: new Date().toISOString(), session_id: body.sessionId,
+      name: (body.name || "").trim().slice(0, 80),
+      email: body.email.trim().toLowerCase().slice(0, 254),
+      phone: (body.phone || "").replace(/\D/g, "").slice(0, 20),
+      business_status: body.businessStatus, region: String(body.region || "").slice(0, 60),
+      open_date: body.openDate || "", industry: String(body.industry || "").slice(0, 80),
+      employees_band: body.employeesBand || "", interests: body.interests || [],
+      consent_privacy: true, consent_service: true, consent_marketing: Boolean(body.consentMarketing),
+      consent_version: "2026-09-19.v1", utm: body.utm || {}, status: "active",
+      unsubscribe_token: crypto.randomUUID(),
     };
-
-    await supabaseRequest<void>("alert_leads", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify(row),
-    });
-
-    await Promise.allSettled([
-      supabaseRequest("rpc/alert_match_lead", { method: "POST", body: JSON.stringify({ p_lead_id: row.id, p_session_id: body.sessionId }) }),
-      supabaseRequest("alert_events", {
-        method: "POST",
-        headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ session_id: body.sessionId, lead_id: row.id, type: "alert_signup", meta: { source: "opportunity-radar" } }),
-      }),
-    ]);
-
-    return NextResponse.json({ leadId: row.id });
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "등록 중 오류가 발생했습니다." },
-      { status: 500 },
-    );
+    await appendRow("leads", row);
+    await appendRow("events", {
+      id: crypto.randomUUID(), created_at: new Date().toISOString(), session_id: body.sessionId,
+      lead_id: id, type: "alert_signup", meta: { source: "opportunity-radar" },
+    }).catch(() => {});
+    return NextResponse.json({ leadId: id });
+  } catch {
+    return NextResponse.json({ error: "등록 중 오류가 발생했습니다." }, { status: 500 });
   }
 }
