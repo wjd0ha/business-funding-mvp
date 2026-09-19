@@ -54,7 +54,7 @@ export default function Home() {
             <span className="grid size-10 place-items-center rounded-xl bg-[var(--navy)] text-lg font-black text-white">B</span>
             <span><strong className="block tracking-[0.18em]">BIZFIT</strong><small className="text-[#66738a]">사업기회 레이더</small></span>
           </button>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#66738a]"><span className="hidden sm:inline">기업마당 공고 데이터 연동</span><span className="size-2 rounded-full bg-[#20b486] shadow-[0_0_0_5px_rgba(32,180,134,.12)]" /></div>
+          <div className="flex items-center gap-3 text-xs font-bold text-[#66738a]"><Link href="/prep-map" className="rounded-lg bg-[#edf4ff] px-3 py-2 text-[var(--blue)]">2027 준비지도</Link><span className="hidden sm:inline">기업마당 공고 데이터 연동</span><span className="size-2 rounded-full bg-[#20b486] shadow-[0_0_0_5px_rgba(32,180,134,.12)]" /></div>
         </div>
       </header>
 

@@ -12,6 +12,11 @@ alter table public.alert_leads
 alter table public.alert_notifications
   add column if not exists dedupe_key text;
 
+alter table public.alert_notifications drop constraint if exists alert_notifications_status_check;
+alter table public.alert_notifications
+  add constraint alert_notifications_status_check
+  check (status in ('draft', 'sending', 'sent', 'failed', 'skipped'));
+
 create unique index if not exists alert_notifications_dedupe_key_idx
   on public.alert_notifications (dedupe_key)
   where dedupe_key is not null;
@@ -24,6 +29,11 @@ create index if not exists alert_events_created_idx
   on public.alert_events (created_at desc);
 create index if not exists alert_matches_notice_idx
   on public.alert_matches (notice_id, score desc);
+
+-- 기존의 무조건 허용 anon INSERT는 다른 리드의 저장 목록을 조작할 수 있다.
+-- 저장은 아래 세션 검증 RPC만 통과하도록 제한한다.
+drop policy if exists "public saves notices" on public.alert_saved_notices;
+revoke insert on public.alert_saved_notices from anon;
 
 create or replace function private.is_alert_admin()
 returns boolean
@@ -227,3 +237,28 @@ $$;
 
 revoke all on function public.queue_alert_notifications(date) from public, anon, authenticated;
 grant execute on function public.queue_alert_notifications(date) to service_role;
+
+create or replace function public.claim_alert_notifications(p_limit integer default 50)
+returns setof public.alert_notifications
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  return query
+  with picked as (
+    select n.id from public.alert_notifications n
+    where n.status = 'draft'
+    order by n.created_at
+    limit least(greatest(p_limit, 1), 50)
+    for update skip locked
+  )
+  update public.alert_notifications n
+  set status = 'sending'
+  from picked
+  where n.id = picked.id
+  returning n.*;
+end;
+$$;
+revoke all on function public.claim_alert_notifications(integer) from public, anon, authenticated;
+grant execute on function public.claim_alert_notifications(integer) to service_role;
