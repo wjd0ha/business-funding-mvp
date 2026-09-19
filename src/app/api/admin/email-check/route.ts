@@ -12,7 +12,14 @@ export async function POST(request: NextRequest) {
   try {
     await verifyNaverEmail();
     return NextResponse.json({ configured: true, verified: true, sent: false });
-  } catch {
-    return NextResponse.json({ configured: true, verified: false, sent: false }, { status: 503 });
+  } catch (error) {
+    const smtpError = error as { code?: string; responseCode?: number };
+    const reason =
+      smtpError.code === "EAUTH" || smtpError.responseCode === 535 || smtpError.responseCode === 534
+        ? "authentication"
+        : ["ECONNECTION", "ETIMEDOUT", "ESOCKET", "EDNS"].includes(smtpError.code ?? "")
+          ? "connection"
+          : "unknown";
+    return NextResponse.json({ configured: true, verified: false, sent: false, reason }, { status: 503 });
   }
 }
