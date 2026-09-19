@@ -4,6 +4,12 @@ import type { NextRequest } from "next/server";
 export const ADMIN_COOKIE = "bizfit_radar_admin";
 const maxAge = 60 * 60 * 8;
 
+// The separate Vercel preview is already behind Vercel Authentication.
+// Keep the application password mandatory everywhere else, including Production.
+export function isVercelPreviewAdmin() {
+  return process.env.VERCEL_ENV === "preview" && process.env.RADAR_PREVIEW_SSO === "1";
+}
+
 function secret() {
   const value = process.env.RADAR_ADMIN_SECRET || "";
   if (value.length < 32) throw new Error("관리자 보안 키가 설정되지 않았습니다.");
@@ -21,6 +27,7 @@ export function makeAdminCookie() {
 }
 
 export function isAdmin(request: NextRequest) {
+  if (isVercelPreviewAdmin()) return true;
   try {
     const cookie = request.cookies.get(ADMIN_COOKIE)?.value || "";
     const [expires, supplied] = cookie.split(".");

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAdmin } from "@/lib/admin-auth";
+import { isAdmin, isVercelPreviewAdmin } from "@/lib/admin-auth";
 import { parseList, readRows, updateRow } from "@/lib/google-sheets";
 
 export async function GET(request: NextRequest) {
@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
       readRows("leads"), readRows("notices"), readRows("events"), readRows("notifications"),
     ]);
     return NextResponse.json({
+      authMode: isVercelPreviewAdmin() ? "vercel-preview" : "password",
       leads: leadRows.slice(-200).reverse().map((row) => ({
         ...row, interests: parseList(row.interests), consent_marketing: row.consent_marketing === "true",
       })),
