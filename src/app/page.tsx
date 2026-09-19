@@ -54,7 +54,7 @@ export default function Home() {
             <span className="grid size-10 place-items-center rounded-xl bg-[var(--navy)] text-lg font-black text-white">B</span>
             <span><strong className="block tracking-[0.18em]">BIZFIT</strong><small className="text-[#66738a]">사업기회 레이더</small></span>
           </button>
-          <div className="flex items-center gap-3 text-xs font-bold text-[#66738a]"><Link href="/prep-map" className="rounded-lg bg-[#edf4ff] px-3 py-2 text-[var(--blue)]">2027 준비지도</Link><span className="hidden sm:inline">기업마당 공고 데이터 연동</span><span className="size-2 rounded-full bg-[#20b486] shadow-[0_0_0_5px_rgba(32,180,134,.12)]" /></div>
+          <div className="flex items-center gap-3 text-xs font-bold text-[#66738a]"><Link href="/prep-map" className="rounded-lg bg-[#edf4ff] px-3 py-2 text-[var(--blue)]">2027 준비지도</Link><span className="hidden sm:inline">{noticeSource === "demo" ? "예시 모드" : "기업마당 공고 연동"}</span><span className={`size-2 rounded-full ${noticeSource === "demo" ? "bg-[#e5a626]" : "bg-[#20b486] shadow-[0_0_0_5px_rgba(32,180,134,.12)]"}`} /></div>
         </div>
       </header>
 
@@ -77,7 +77,7 @@ function Intro({ onStart, count, demo }: { onStart: () => void; count: number; d
       <div className="radar-grid absolute inset-0 opacity-35" /><div className="absolute -right-20 top-12 size-80 rounded-full bg-[#1268ff]/25 blur-3xl" />
       <div className="relative mx-auto grid min-h-[700px] max-w-7xl items-center gap-12 px-5 py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8">
         <div>
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold"><span className="size-2 animate-pulse rounded-full bg-[#64e4bb]" /> 매일 새 공고를 확인해요</span>
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-bold"><span className="size-2 rounded-full bg-[#64e4bb]" /> {demo ? "프리뷰 화면을 살펴보세요" : "새 공고를 확인해요"}</span>
           <h1 className="mt-7 text-4xl font-black leading-[1.12] tracking-tight sm:text-6xl">내 사업에 맞는 지원사업,<br /><span className="text-[#70a9ff]">매번 검색하지 마세요.</span></h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-[#c8d7ee]">지역·업종·업력 등 6가지 정보만 알려주시면 지금 확인할 사업과 곧 준비할 사업기회를 한 번에 정리해드립니다.</p>
           <div className="mt-9 flex flex-col gap-3 sm:flex-row"><button onClick={onStart} className="rounded-xl bg-[var(--blue)] px-7 py-4 text-base font-black shadow-[0_18px_45px_rgba(16,98,229,.38)] transition hover:-translate-y-0.5 hover:bg-[#2674ed]">1분 무료 조회 시작하기 →</button><a href="#how" className="rounded-xl border border-white/20 px-7 py-4 text-center font-bold text-[#dbe8fa] hover:bg-white/10">이용 방법 보기</a></div>
