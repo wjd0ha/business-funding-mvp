@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { questions } from "@/data/questions";
 import { calculateResult, type Answers } from "@/lib/calculateResult";
+import { RadarPanel } from "./RadarPanel";
 
 const kakaoConsultUrl = "http://pf.kakao.com/_xlHHQxj/friend";
 const kakaoOpenChatUrl = "https://m.site.naver.com/1em9H";
@@ -199,10 +200,10 @@ export default function Home() {
         )}
 
         {isResultVisible && (
-          <ResultScreen
-            answers={answers}
-            onRestart={resetSurvey}
-          />
+          <>
+            <ResultScreen answers={answers} onRestart={resetSurvey} />
+            <RadarPanel answers={answers} />
+          </>
         )}
       </section>
     </main>
