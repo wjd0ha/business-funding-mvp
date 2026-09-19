@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #050538;
+  --navy: #050538;
+  --blue: #1062e5;
+  --mist: #f5f8fc;
 }
 
 * {
@@ -18,10 +21,59 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  letter-spacing: -0.02em;
 }
 
 button,
 a {
   -webkit-tap-highlight-color: transparent;
 }
+
+button { cursor: pointer; }
+
+.eyebrow {
+  color: var(--blue);
+  font-size: .75rem;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.soft-card {
+  border: 1px solid #dfe8f5;
+  border-radius: 1rem;
+  background: white;
+  box-shadow: 0 14px 38px rgba(4, 31, 77, .06);
+}
+
+.option-card {
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  gap: 1rem;
+  border: 1px solid #dfe8f5;
+  border-radius: 1rem;
+  padding: 1rem 1.125rem;
+  background: white;
+  text-align: left;
+  transition: .18s ease;
+}
+
+.option-card:hover { transform: translateY(-2px); border-color: #86adf0; box-shadow: 0 12px 28px rgba(16, 98, 229, .09); }
+.option-selected { border-color: var(--blue); background: #f1f6ff; box-shadow: 0 0 0 3px rgba(16, 98, 229, .11); }
+.radio-dot, .check-dot { display: grid; width: 1.5rem; height: 1.5rem; flex: 0 0 auto; place-items: center; border: 1px solid #afbed2; border-radius: 999px; color: white; font-size: .75rem; }
+.option-selected .radio-dot, .option-selected .check-dot { border-color: var(--blue); background: var(--blue); }
+.option-selected .radio-dot span { width: .5rem; height: .5rem; border-radius: 50%; background: white; }
+
+.form-input { width: 100%; border: 1px solid rgba(255,255,255,.18); border-radius: .75rem; background: rgba(255,255,255,.1); padding: .875rem 1rem; color: white; outline: none; }
+.form-input::placeholder { color: #91a4c0; }
+.form-input:focus { border-color: #70a9ff; box-shadow: 0 0 0 4px rgba(112,169,255,.12); }
+
+.radar-grid { background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 46px 46px; }
+.radar-orbit { position: relative; background: radial-gradient(circle at center, rgba(16,98,229,.2), rgba(5,5,56,0) 64%); }
+.radar-orbit::before { content: ""; position: absolute; inset: 10%; border-radius: 50%; background: conic-gradient(from 0deg, transparent 0 76%, rgba(73,145,255,.28) 86%, transparent 100%); animation: radar-spin 5s linear infinite; }
+.radar-chip { position: absolute; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(255,255,255,.1); padding: .55rem .8rem; font-size: .75rem; font-weight: 800; backdrop-filter: blur(8px); }
+.radar-chip-0 { left: 1%; top: 22%; } .radar-chip-1 { right: 2%; top: 31%; } .radar-chip-2 { bottom: 17%; right: 13%; } .radar-chip-3 { bottom: 12%; left: 15%; }
+@keyframes radar-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; } }
