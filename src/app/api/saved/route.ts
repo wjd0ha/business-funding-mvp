@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "잘못된 요청입니다." }, { status: 400 });
     }
     const [leads, notices, saved] = await Promise.all([readRows("leads"), readRows("notices"), readRows("saved")]);
-    if (!leads.some((row) => row.id === leadId && row.session_id === sessionId && row.status === "active") ||
+    if (!leads.some((row) => row.id === leadId && row.session_id === sessionId && ["active", "preview"].includes(row.status)) ||
         !notices.some((row) => row.id === noticeId)) {
       return NextResponse.json({ error: "등록 정보 또는 공고를 확인해주세요." }, { status: 403 });
     }

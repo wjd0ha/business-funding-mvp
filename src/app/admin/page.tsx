@@ -8,7 +8,7 @@ type Lead = {
   business_status: string; region: string; industry: string; interests: string[];
   status: string; consent_marketing: boolean;
 };
-const statusLabel: Record<string, string> = { active: "신규", reviewing: "검토중", contacted: "연락완료", closed: "종료", unsubscribed: "수신해지" };
+const statusLabel: Record<string, string> = { preview: "프리뷰 관심", active: "신규", reviewing: "검토중", contacted: "연락완료", closed: "종료", unsubscribed: "수신해지" };
 
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);

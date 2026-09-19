@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as LeadPayload & { website?: string };
     if (body.website) return NextResponse.json({ ok: true });
-    if (!body.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) || !body.consentPrivacy || !body.consentService ||
+    const alertsLive = process.env.RADAR_EMAIL_ENABLED === "1";
+    if (!body.email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(body.email) || !body.consentPrivacy || (alertsLive && !body.consentService) ||
         !/^[a-f0-9-]{36}$/i.test(body.sessionId || "") || !["pre","biz","re"].includes(body.businessStatus)) {
       return NextResponse.json({ error: "필수 입력과 동의를 확인해주세요." }, { status: 400 });
     }
@@ -20,8 +21,8 @@ export async function POST(request: NextRequest) {
       business_status: body.businessStatus, region: String(body.region || "").slice(0, 60),
       open_date: body.openDate || "", industry: String(body.industry || "").slice(0, 80),
       employees_band: body.employeesBand || "", interests: body.interests || [],
-      consent_privacy: true, consent_service: true, consent_marketing: Boolean(body.consentMarketing),
-      consent_version: "2026-09-19.v1", utm: body.utm || {}, status: "active",
+      consent_privacy: true, consent_service: alertsLive && Boolean(body.consentService), consent_marketing: Boolean(body.consentMarketing),
+      consent_version: "2026-09-19.v1", utm: body.utm || {}, status: alertsLive ? "active" : "preview",
       unsubscribe_token: crypto.randomUUID(),
     };
     await appendRow("leads", row);

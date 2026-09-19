@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   if (!isAdmin(request)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const { id, status } = await request.json();
-  if (typeof id !== "string" || !["active","reviewing","contacted","closed","unsubscribed"].includes(status)) {
+  if (typeof id !== "string" || !["preview","active","reviewing","contacted","closed","unsubscribed"].includes(status)) {
     return NextResponse.json({ error: "invalid request" }, { status: 400 });
   }
   const rows = await readRows("leads");
