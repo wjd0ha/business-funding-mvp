@@ -1,7 +1,7 @@
 export type BusinessStatus = "pre" | "biz" | "re";
 
 export type RadarProfile = {
-  businessStatus: BusinessStatus;
+  businessStatus: BusinessStatus | "";
   region: string;
   industry: string;
   openDate: string | null;

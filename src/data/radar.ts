@@ -1,7 +1,7 @@
 import type { BusinessStatus, Notice } from "@/lib/radar-types";
 
 export const regions = [
-  "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종",
+  "전국", "서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "세종",
   "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주",
 ];
 
@@ -19,8 +19,28 @@ export const industries = [
 
 export const interests = [
   "사업화", "정책자금", "판로·마케팅", "AI·디지털", "인건비·고용",
-  "시설·장비", "교육·컨설팅", "수출", "R&D", "잘 모르겠음",
+  "시설·장비", "교육·컨설팅", "수출", "R&D",
 ];
+
+// 기업마당의 큰 분야를 탐색 축으로 사용하고, 현재 수집 공고의 세부 분류와 연결한다.
+// 기업마당 화면의 건수는 실시간 수치이므로 여기에서 재사용하지 않는다.
+export const supportAreas = [
+  { label: "금융", description: "융자·정책자금", categories: ["정책자금"] },
+  { label: "기술", description: "R&D·AI·시설", categories: ["R&D", "AI·디지털", "시설·장비"] },
+  { label: "인력", description: "고용·인건비", categories: ["인건비·고용"] },
+  { label: "수출", description: "해외시장·바우처", categories: ["수출"] },
+  { label: "내수", description: "판로·마케팅", categories: ["판로·마케팅"] },
+  { label: "창업", description: "사업화·재도전", categories: ["사업화"] },
+  { label: "경영", description: "교육·컨설팅", categories: ["교육·컨설팅"] },
+  { label: "기타", description: "그 밖의 지원", categories: ["기타"] },
+] as const;
+
+export function interestMatchesCategories(selected: string[], categories: string[]) {
+  return selected.some((interest) =>
+    categories.includes(interest) ||
+    supportAreas.some((area) => area.label === interest && area.categories.some((category) => categories.includes(category))),
+  );
+}
 
 export const fallbackNotices: Notice[] = [
   {

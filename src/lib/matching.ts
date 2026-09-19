@@ -1,4 +1,5 @@
 import type { MatchResult, Notice, RadarProfile } from "@/lib/radar-types";
+import { interestMatchesCategories } from "@/data/radar";
 
 function businessYears(openDate: string | null) {
   if (!openDate) return null;
@@ -18,8 +19,8 @@ export function matchNotices(profile: RadarProfile, notices: Notice[]): MatchRes
   const years = businessYears(profile.openDate);
 
   return notices
-    .filter((notice) => notice.targetStatus.includes(profile.businessStatus))
-    .filter((notice) => notice.regions.includes("전국") || notice.regions.includes(profile.region))
+    .filter((notice) => profile.businessStatus && notice.targetStatus.includes(profile.businessStatus))
+    .filter((notice) => profile.region === "전국" || notice.regions.includes("전국") || notice.regions.includes(profile.region))
     .filter((notice) => notice.industries.includes("all") || notice.industries.includes(profile.industry))
     .filter((notice) => {
       if (years === null) return true;
@@ -32,13 +33,15 @@ export function matchNotices(profile: RadarProfile, notices: Notice[]): MatchRes
       let score = 40;
       const reasons: string[] = [];
       const noticeCategories = [notice.category, ...notice.alsoCategories];
-      const interestHit = profile.interests.some((item) => noticeCategories.includes(item));
+      const interestHit = interestMatchesCategories(profile.interests, noticeCategories);
 
       if (interestHit) {
         score += 25;
-        reasons.push(`관심분야 일치 · ${notice.category}`);
+        reasons.push(`관심 분야 일치 · ${notice.category}`);
       }
-      if (!notice.regions.includes("전국")) {
+      if (profile.region === "전국" && !notice.regions.includes("전국")) {
+        reasons.push("지역 자격 확인 필요");
+      } else if (!notice.regions.includes("전국")) {
         score += 15;
         reasons.push(`지역 일치 · ${profile.region}`);
       } else {
