@@ -75,8 +75,8 @@ function safeCell(value: unknown): string {
   return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
 }
 
-export async function readRows(tab: string): Promise<SheetRow[]> {
-  const result = await sheetsRequest<{ values?: string[][] }>(`values/${range(tab, "A1:Z10000")}`);
+export async function readRows(tab: string, cells = "A1:Z10000"): Promise<SheetRow[]> {
+  const result = await sheetsRequest<{ values?: string[][] }>(`values/${range(tab, cells)}`);
   const [headers = [], ...rows] = result.values ?? [];
   return rows.filter((row) => row.some(Boolean)).map((row) =>
     Object.fromEntries(headers.map((key, index) => [key, row[index] ?? ""])),

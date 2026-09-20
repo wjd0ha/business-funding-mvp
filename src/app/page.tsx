@@ -5,22 +5,12 @@ import Link from "next/link";
 import { businessStatuses, industries, interests, regions, supportAreas, interestMatchesCategories } from "@/data/radar";
 import { matchNotices } from "@/lib/matching";
 import type { MatchResult, Notice, RadarProfile } from "@/lib/radar-types";
+import FeedbackWidget from "@/components/feedback-widget";
+import { getRadarSessionId, trackEvent as logEvent } from "@/lib/client-analytics";
 
 const emptyProfile: RadarProfile = { businessStatus: "", region: "", industry: "", openDate: null, employeesBand: "", interests: [] };
 const steps = ["사업 형태와 지역", "업종과 업력", "지원 분야"];
 const alertsLive = process.env.NEXT_PUBLIC_RADAR_EMAIL_ENABLED === "1";
-
-function getSessionId() {
-  const stored = window.localStorage.getItem("bizfit-radar-session");
-  if (stored) return stored;
-  const created = crypto.randomUUID();
-  window.localStorage.setItem("bizfit-radar-session", created);
-  return created;
-}
-
-async function logEvent(type: string, sessionId: string, noticeId?: string, leadId?: string) {
-  await fetch("/api/events", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type, sessionId, noticeId, leadId }) }).catch(() => undefined);
-}
 
 export default function Home() {
   const [screen, setScreen] = useState<"intro" | "results">("intro");
@@ -33,7 +23,7 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
 
   useEffect(() => {
-    queueMicrotask(() => setSessionId(getSessionId()));
+    queueMicrotask(() => setSessionId(getRadarSessionId()));
     fetch("/api/notices").then((response) => response.json()).then((data) => { setNotices(data.notices ?? []); setNoticeSource(data.source ?? "demo"); }).finally(() => setLoadingNotices(false));
   }, []);
 
@@ -43,8 +33,8 @@ export default function Home() {
 
   function choose<K extends keyof RadarProfile>(key: K, value: RadarProfile[K]) { setProfile((current) => ({ ...current, [key]: value })); }
   function next() {
-    if (step === steps.length - 1) { setScreen("results"); window.scrollTo({ top: 0, behavior: "smooth" }); logEvent("result_view", sessionId); }
-    else setStep((value) => value + 1);
+    if (step === steps.length - 1) { setScreen("results"); window.scrollTo({ top: 0, behavior: "smooth" }); logEvent("result_view", sessionId, undefined, undefined, { count: activeMatches.length }); }
+    else { logEvent("survey_step", sessionId, undefined, undefined, { step: step + 2 }); setStep((value) => value + 1); }
   }
 
   return (
@@ -69,8 +59,10 @@ export default function Home() {
 
       <footer className="border-t border-[#dfe8f5] bg-white px-5 py-8 text-center text-xs leading-6 text-[#768298]">
         <p>© 2026 BIZFIT. All rights reserved. · 공고 내용과 신청 자격은 반드시 해당 기관의 최신 공고문을 확인해주세요.</p>
+        <p>서비스 개선을 위해 임시 세션의 화면·기능 이용을 기록합니다. 분석 로그에는 검색어와 연락처를 저장하지 않습니다.</p>
         <Link className="mt-1 inline-block font-bold text-[var(--blue)]" href="/admin">관리자 CRM</Link>
       </footer>
+      <FeedbackWidget page="home" />
     </main>
   );
 }
@@ -139,10 +131,10 @@ function Results({ profile, matches, expected, loading, demo, sessionId, leadId,
   });
   const statusLabel = businessStatuses.find((item) => item.value === profile.businessStatus)?.label;
   const industryLabel = industries.find(([value]) => value === profile.industry)?.[1];
-  async function save(noticeId: string) { if (!leadId) return document.getElementById("alert-form")?.scrollIntoView({ behavior: "smooth" }); const response = await fetch("/api/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, noticeId, sessionId }) }); if (response.ok) setSaved((items) => [...items, noticeId]); }
+  async function save(noticeId: string) { if (!leadId) return document.getElementById("alert-form")?.scrollIntoView({ behavior: "smooth" }); const response = await fetch("/api/saved", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ leadId, noticeId, sessionId }) }); if (response.ok) { setSaved((items) => [...items, noticeId]); logEvent("notice_save", sessionId, noticeId); } }
   return <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
     <div className="overflow-hidden rounded-3xl bg-[var(--navy)] p-7 text-white sm:p-10"><div className="flex flex-wrap items-start justify-between gap-6"><div><p className="text-sm font-black tracking-[.16em] text-[#74aaff]">MY OPPORTUNITY RADAR</p><h1 className="mt-3 text-3xl font-black sm:text-4xl">내 조건으로 확인할 공고 <span className="text-[#8dbaff]">{matches.length}건</span></h1><p className="mt-3 text-sm leading-6 text-[#b6c8e4]">{demo ? "예시 데이터로 화면을 살펴보는 중입니다." : "입력 조건과 수집 공고의 표시 정보를 비교한 검토 후보입니다. 최종 지원 자격은 공고문에서 확인해주세요."}</p></div><button onClick={onRestart} className="rounded-xl border border-white/25 px-4 py-3 text-sm font-black hover:bg-white/10">조건 다시 설정</button></div><div className="mt-6 flex flex-wrap gap-2">{[statusLabel, profile.region === "전국" ? "전체 지역 탐색" : profile.region, industryLabel, profile.openDate && `${profile.openDate} 개업`, ...profile.interests].filter(Boolean).map((item) => <span key={item} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-[#e3eeff]">{item}</span>)}</div><div className="mt-6 grid gap-3 border-t border-white/15 pt-5 sm:grid-cols-3">{[[matches.length, "조건 후보"], [focused.length, "선택 분야 일치"], [urgent, "7일 내 마감"]].map(([value, label]) => <div key={String(label)} className="rounded-xl bg-white/10 px-4 py-3"><strong className="text-2xl">{value}</strong><span className="ml-2 text-xs text-[#b6c8e4]">{label}</span></div>)}</div></div>
-    <div className="mt-7 rounded-2xl border border-[#d9e4f5] bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row"><input aria-label="공고 검색" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(6); }} placeholder="공고명·기관명·키워드 검색" className="min-w-0 flex-1 rounded-xl border border-[#d9e4f5] px-4 py-3 text-sm outline-none focus:border-[var(--blue)]" /><span className="self-center text-xs font-bold text-[#728098]">수집된 공고에서 검색</span></div><div className="mt-4 flex flex-wrap gap-2">{[{ label: "전체", count: matches.length }, ...counts].map((item) => <button key={item.label} type="button" onClick={() => { setArea(item.label); setVisible(6); }} className={`rounded-full border px-3 py-2 text-xs font-black ${area === item.label ? "border-[var(--blue)] bg-[var(--blue)] text-white" : "border-[#d9e4f5] bg-[#f8fbff] text-[#52627b] hover:border-[#86adf0]"}`}>{item.label} {item.count}</button>)}</div><p className="mt-3 text-xs leading-5 text-[#728098]">분야는 비즈핏 탐색 분류이며, 공고 원문의 세부 자격과 다를 수 있습니다.</p></div>
+    <div className="mt-7 rounded-2xl border border-[#d9e4f5] bg-white p-4 shadow-sm"><div className="flex flex-col gap-3 sm:flex-row"><input aria-label="공고 검색" value={query} onChange={(event) => { setQuery(event.target.value); setVisible(6); }} onBlur={() => { if (query.trim()) logEvent("search", sessionId, undefined, undefined, { has_query: true, result_count: displayed.length }); }} placeholder="공고명·기관명·키워드 검색" className="min-w-0 flex-1 rounded-xl border border-[#d9e4f5] px-4 py-3 text-sm outline-none focus:border-[var(--blue)]" /><span className="self-center text-xs font-bold text-[#728098]">수집된 공고에서 검색</span></div><div className="mt-4 flex flex-wrap gap-2">{[{ label: "전체", count: matches.length }, ...counts].map((item) => <button key={item.label} type="button" onClick={() => { setArea(item.label); setVisible(6); logEvent("filter_change", sessionId, undefined, undefined, { area: item.label }); }} className={`rounded-full border px-3 py-2 text-xs font-black ${area === item.label ? "border-[var(--blue)] bg-[var(--blue)] text-white" : "border-[#d9e4f5] bg-[#f8fbff] text-[#52627b] hover:border-[#86adf0]"}`}>{item.label} {item.count}</button>)}</div><p className="mt-3 text-xs leading-5 text-[#728098]">분야는 비즈핏 탐색 분류이며, 공고 원문의 세부 자격과 다를 수 있습니다.</p></div>
     <div className="mt-8 grid gap-7 lg:grid-cols-[1fr_330px]"><div><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-black">{demo ? "예시 공고" : "지금 확인할 공고"}</h2><span className="text-sm font-bold text-[#63738c]">{displayed.length}건 표시</span></div>{focused.length === 0 && matches.length > 0 && profile.interests[0] !== "잘 모르겠음" && <p className="mt-3 rounded-xl bg-[#edf4ff] px-4 py-3 text-sm text-[#3d5d92]">선택 분야와 직접 일치한 공고는 아직 없습니다. 다른 조건이 맞는 후보를 함께 보여드립니다.</p>}{loading ? <div className="soft-card mt-5 p-10 text-center text-[#68768d]">공고 데이터를 불러오는 중입니다…</div> : displayed.length === 0 ? <div className="soft-card mt-5 p-10 text-center"><strong className="text-xl">이 조건의 공고가 아직 없어요.</strong><p className="mt-2 text-sm text-[#68768d]">분야나 검색어를 바꾸거나, 조건을 다시 설정해보세요.</p></div> : <div className="mt-5 grid gap-4">{displayed.slice(0, visible).map((notice) => <NoticeCard key={notice.id} notice={notice} saved={saved.includes(notice.id)} onSave={() => save(notice.id)} sessionId={sessionId} leadId={leadId} demo={demo} />)}{visible < displayed.length && <button className="rounded-xl border border-[#cbd8ea] bg-white py-4 font-black text-[var(--blue)]" onClick={() => setVisible((value) => value + 6)}>공고 더 보기 ({displayed.length - visible})</button>}</div>}{expected.length > 0 && <div className="mt-12"><p className="eyebrow">PREPARE NEXT</p><h2 className="mt-2 text-2xl font-black">곧 준비할 사업기회</h2><div className="mt-5 grid gap-3 sm:grid-cols-2">{expected.slice(0, 4).map((notice) => <article key={notice.id} className="soft-card p-5"><span className="rounded-md bg-[#fff6db] px-2 py-1 text-xs font-black text-[#8d6200]">예상 공고</span><h3 className="mt-4 font-black">{notice.title}</h3><p className="mt-2 text-sm leading-6 text-[#68768d]">{notice.summary}</p><p className="mt-4 text-xs font-bold text-[var(--blue)]">{notice.expectedWindow || "일정 확인 필요"}</p></article>)}</div></div>}</div>{demo ? <aside className="h-fit rounded-2xl border border-[#f0d683] bg-[#fff9e6] p-6 text-sm leading-6 text-[#795300]">실제 공고 수집과 개발 DB 연결 후 맞춤 알림 신청이 열립니다.</aside> : <LeadForm profile={profile} sessionId={sessionId} leadId={leadId} setLeadId={setLeadId} matchCount={matches.length} />}</div>
   </section>;
 }
