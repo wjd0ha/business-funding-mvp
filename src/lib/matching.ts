@@ -43,21 +43,21 @@ export function matchNotices(profile: RadarProfile, notices: Notice[]): MatchRes
         reasons.push("지역 자격 확인 필요");
       } else if (!notice.regions.includes("전국")) {
         score += 15;
-        reasons.push(`지역 일치 · ${profile.region}`);
+        reasons.push(notice.checkNote ? `지역 표기 일치 · ${profile.region}` : `지역 조건 일치 · ${profile.region}`);
       } else {
         score += 8;
-        reasons.push("전국 대상");
+        reasons.push(notice.checkNote ? "지역 제한 원문 확인" : "전국 대상");
       }
       if (!notice.industries.includes("all")) {
         score += 12;
-        reasons.push("업종 조건 일치");
+        reasons.push(notice.checkNote ? "업종 관련 키워드" : "업종 조건 일치");
       }
       if (years !== null && (notice.minYears != null || notice.maxYears != null)) {
         score += 8;
         reasons.push("업력 조건 일치");
       }
       if (notice.noticeType === "expected") reasons.push("예상 공고 · 일정 재확인 필요");
-      if (reasons.length < 2) reasons.push("기본 자격 조건 일치");
+      if (reasons.length < 2) reasons.push("신청 자격 원문 확인");
 
       score = Math.min(98, score);
       const needsCheck = Boolean(notice.checkNote) || (years === null && profile.businessStatus === "biz" && notice.maxYears != null);
